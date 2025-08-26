@@ -6,4 +6,3 @@ app = FastAPI()
 @app.get("/")
 def home():
     return {"message": "Welcome to jobtracker api"}
-    
