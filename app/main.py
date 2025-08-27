@@ -1,8 +1,7 @@
 from fastapi import FastAPI
-
+from app.routes import router as api_router
 
 app = FastAPI()
 
-@app.get("/")
-def home():
-    return {"message": "Welcome to jobtracker api"}
+
+app.include_router(api_router)

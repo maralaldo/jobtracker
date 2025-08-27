@@ -6,6 +6,7 @@ DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/jobtracker
 
 engine = create_async_engine(DATABASE_URL, echo=True, future=True)
 
+
 AsyncSessionLocal = sessionmaker(
     bind=engine,
     class_=AsyncSession,
