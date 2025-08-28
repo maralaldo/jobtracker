@@ -4,9 +4,7 @@ from sqlalchemy import insert
 from app import models, schemas
 
 
-
 # User CRUD
-
 async def create_user(db: AsyncSession, user: schemas.UserCreate):
     db_user = models.User(
         name=user.name,
@@ -35,10 +33,7 @@ async def get_users(db: AsyncSession, skip: int = 0, limit: int = 10):
     return result.scalars().all()
 
 
-
-
 # Vacancy CRUD
-
 async def create_vacancy(db: AsyncSession, vacancy: schemas.VacancyCreate):
     db_vacancy = models.Vacancy(
         title=vacancy.title,
@@ -64,17 +59,14 @@ async def get_vacancies(db: AsyncSession, skip: int = 0, limit: int = 10):
     return result.scalars().all()
 
 
-
-
 # Filter CRUD
-
-async def create_filter(db: AsyncSession, filter_: schemas.FilterCreate, user_id: int):
+async def create_filter(db: AsyncSession, filter_data: schemas.FilterCreate):
     db_filter = models.Filter(
-        user_id=user_id,
-        keyword=filter_.keyword,
-        location=filter_.location,
-        min_salary=filter_.min_salary,
-        max_salary=filter_.max_salary,
+        user_id=filter_data.user_id,
+        keyword=filter_data.keyword,
+        location=filter_data.location,
+        min_salary=filter_data.min_salary,
+        max_salary=filter_data.max_salary,
     )
     db.add(db_filter)
     await db.commit()
