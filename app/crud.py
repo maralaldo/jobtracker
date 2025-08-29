@@ -108,3 +108,29 @@ async def get_filters_by_user(db: AsyncSession, user_id: int):
 async def get_filter(db: AsyncSession, filter_id: int):
     result = await db.execute(select(models.Filter).where(models.Filter.id == filter_id))
     return result.scalar_one_or_none()
+
+
+async def update_filter(db: AsyncSession, filter_id: int, filter_in: schemas.FilterUpdate):
+    result = await db.execute(select(models.Filter).where(models.Filter.id == filter_id))
+    db_filter = result.scalar_one_or_none()
+    if not db_filter:
+        return None
+
+    data = filter_in.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(db_filter, field, value)
+
+    await db.commit()
+    await db.refresh(db_filter)
+    return db_filter
+
+
+async def delete_filter(db: AsyncSession, filter_id: int) -> bool:
+    result = await db.execute(select(models.Filter).where(models.Filter.id == filter_id))
+    db_filter = result.scalar_one_or_none()
+    if not db_filter:
+        return False
+
+    await db.delete(db_filter)
+    await db.commit()
+    return True

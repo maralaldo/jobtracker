@@ -66,3 +66,10 @@ class FilterRead(FilterBase):
 
     class Config:
         from_attributes = True
+
+
+class FilterUpdate(BaseModel):
+    keyword: Optional[str] = None
+    location: Optional[str] = None
+    min_salary: Optional[int] = None
+    max_salary: Optional[int] = None

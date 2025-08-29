@@ -54,3 +54,19 @@ async def create_filter(filter_data: schemas.FilterCreate, db: AsyncSession = De
 @router.get("/filters/{filter_id}", response_model=schemas.FilterRead)
 async def read_filter(filter_id: int, db: AsyncSession = Depends(get_session)):
     return await crud.get_filter(db=db, filter_id=filter_id)
+
+
+@router.patch("/filters/{filter_id}", response_model=schemas.FilterRead)
+async def update_filter(filter_id: int, filter_update: schemas.FilterUpdate, db: AsyncSession = Depends(get_session)):
+    filter_obj = await crud.update_filter(db, filter_id, filter_update)
+    if not filter_obj:
+        raise HTTPException(status_code=404, detail="Filter not found")
+    return filter_obj
+
+
+@router.delete("/filters/{filter_id}", status_code=204)
+async def delete_filter(filter_id: int, db: AsyncSession = Depends(get_session)):
+    ok = await crud.delete_filter(db, filter_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Filter not found")
+    return Response(status_code=204)
