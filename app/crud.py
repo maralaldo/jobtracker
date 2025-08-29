@@ -33,6 +33,32 @@ async def get_users(db: AsyncSession, skip: int = 0, limit: int = 10):
     return result.scalars().all()
 
 
+async def update_user(db: AsyncSession, user_id: int, user_in: schemas.UserUpdate):
+    result = await db.execute(select(models.User).where(models.User.id == user_id))
+    db_user = result.scalar_one_or_none()
+    if not db_user:
+        return None
+
+    data = user_in.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(db_user, field, value)
+
+    await db.commit()
+    await db.refresh(db_user)
+    return db_user
+
+
+async def delete_user(db: AsyncSession, user_id: int) -> bool:
+    result = await db.execute(select(models.User).where(models.User.id == user_id))
+    db_user = result.scalar_one_or_none()
+    if not db_user:
+        return False
+
+    await db.delete(db_user)
+    await db.commit()
+    return True
+
+
 # Vacancy CRUD
 async def create_vacancy(db: AsyncSession, vacancy: schemas.VacancyCreate):
     db_vacancy = models.Vacancy(

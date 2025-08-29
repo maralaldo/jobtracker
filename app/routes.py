@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_session
 from app import crud, schemas
@@ -16,6 +16,22 @@ async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_s
 @router.get("/users/{user_id}", response_model=schemas.UserRead)
 async def read_user(user_id: int, db: AsyncSession = Depends(get_session)):
     return await crud.get_user(db=db, user_id=user_id)
+
+
+@router.patch("/users/{user_id}", response_model=schemas.UserRead)
+async def update_user(user_id: int, user_update: schemas.UserUpdate, db: AsyncSession = Depends(get_session)):
+    user = await crud.update_user(db, user_id, user_update)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+
+@router.delete("/users/{user_id}", status_code=204)
+async def delete_user(user_id: int, db: AsyncSession = Depends(get_session)):
+    ok = await crud.delete_user(db, user_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="User not found")
+    return Response(status_code=204)
 
 
 # Vacancies

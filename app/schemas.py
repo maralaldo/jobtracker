@@ -20,6 +20,13 @@ class UserRead(UserBase):
         from_attributes = True
 
 
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    telegram_id: Optional[str] = None
+    password: Optional[str] = None
+
+
 # Vacancy Schemas
 class VacancyBase(BaseModel):
     title: str
