@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_session
 from app import crud, schemas
 
-
 router = APIRouter()
+
 
 
 # Users
@@ -16,6 +16,11 @@ async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_s
 @router.get("/users/{user_id}", response_model=schemas.UserRead)
 async def read_user(user_id: int, db: AsyncSession = Depends(get_session)):
     return await crud.get_user(db=db, user_id=user_id)
+
+
+@router.get("/users/", response_model=list[schemas.UserRead])
+async def list_users(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_session)):
+    return await crud.get_users(db=db, skip=skip, limit=limit)
 
 
 @router.patch("/users/{user_id}", response_model=schemas.UserRead)
@@ -34,6 +39,7 @@ async def delete_user(user_id: int, db: AsyncSession = Depends(get_session)):
     return Response(status_code=204)
 
 
+
 # Vacancies
 @router.post("/vacancies/", response_model=schemas.VacancyRead)
 async def create_vacancy(vacancy: schemas.VacancyCreate, db: AsyncSession = Depends(get_session)):
@@ -42,7 +48,32 @@ async def create_vacancy(vacancy: schemas.VacancyCreate, db: AsyncSession = Depe
 
 @router.get("/vacancies/{vacancy_id}", response_model=schemas.VacancyRead)
 async def read_vacancy(vacancy_id: int, db: AsyncSession = Depends(get_session)):
-    return await crud.get_vacancy(db=db, vacancy_id=vacancy_id)
+    vacancy = await crud.get_vacancy(db=db, vacancy_id=vacancy_id)
+    if not vacancy:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+    return vacancy
+
+
+@router.get("/vacancies/", response_model=list[schemas.VacancyRead])
+async def list_vacancies(skip: int = 0, limit: int = 10, db: AsyncSession = Depends(get_session)):
+    return await crud.get_vacancies(db=db, skip=skip, limit=limit)
+
+
+@router.patch("/vacancies/{vacancy_id}", response_model=schemas.VacancyRead)
+async def update_vacancy(vacancy_id: int, vacancy_update: schemas.VacancyUpdate, db: AsyncSession = Depends(get_session)):
+    vacancy = await crud.update_vacancy(db, vacancy_id, vacancy_update)
+    if not vacancy:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+    return vacancy
+
+
+@router.delete("/vacancies/{vacancy_id}", status_code=204)
+async def delete_vacancy(vacancy_id: int, db: AsyncSession = Depends(get_session)):
+    ok = await crud.delete_vacancy(db, vacancy_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="Vacancy not found")
+    return Response(status_code=204)
+
 
 
 # Filters
@@ -53,7 +84,15 @@ async def create_filter(filter_data: schemas.FilterCreate, db: AsyncSession = De
 
 @router.get("/filters/{filter_id}", response_model=schemas.FilterRead)
 async def read_filter(filter_id: int, db: AsyncSession = Depends(get_session)):
-    return await crud.get_filter(db=db, filter_id=filter_id)
+    filter_obj = await crud.get_filter(db=db, filter_id=filter_id)
+    if not filter_obj:
+        raise HTTPException(status_code=404, detail="Filter not found")
+    return filter_obj
+
+
+@router.get("/users/{user_id}/filters/", response_model=list[schemas.FilterRead])
+async def list_filters_by_user(user_id: int, db: AsyncSession = Depends(get_session)):
+    return await crud.get_filters_by_user(db=db, user_id=user_id)
 
 
 @router.patch("/filters/{filter_id}", response_model=schemas.FilterRead)

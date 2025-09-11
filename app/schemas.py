@@ -2,6 +2,7 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 
 
+
 # User Schemas
 class UserBase(BaseModel):
     name: str
@@ -27,6 +28,7 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
 
 
+
 # Vacancy Schemas
 class VacancyBase(BaseModel):
     title: str
@@ -46,6 +48,16 @@ class VacancyRead(VacancyBase):
 
     class Config:
         from_attributes = True
+
+
+class VacancyUpdate(BaseModel):
+    title: Optional[str] = None
+    company: Optional[str] = None
+    location: Optional[str] = None
+    salary: Optional[int] = None
+    url: Optional[str] = None
+    source: Optional[str] = None
+
 
 
 # Filter Schemas

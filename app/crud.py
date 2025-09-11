@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import insert
 from app import models, schemas
+
 
 
 # User CRUD
@@ -59,16 +59,10 @@ async def delete_user(db: AsyncSession, user_id: int) -> bool:
     return True
 
 
+
 # Vacancy CRUD
 async def create_vacancy(db: AsyncSession, vacancy: schemas.VacancyCreate):
-    db_vacancy = models.Vacancy(
-        title=vacancy.title,
-        company=vacancy.company,
-        location=vacancy.location,
-        salary=vacancy.salary,
-        url=vacancy.url,
-        source=vacancy.source,
-    )
+    db_vacancy = models.Vacancy(**vacancy.model_dump())
     db.add(db_vacancy)
     await db.commit()
     await db.refresh(db_vacancy)
@@ -85,24 +79,40 @@ async def get_vacancies(db: AsyncSession, skip: int = 0, limit: int = 10):
     return result.scalars().all()
 
 
+async def update_vacancy(db: AsyncSession, vacancy_id: int, vacancy_in: schemas.VacancyCreate):
+    result = await db.execute(select(models.Vacancy).where(models.Vacancy.id == vacancy_id))
+    db_vacancy = result.scalar_one_or_none()
+    if not db_vacancy:
+        return None
+
+    data = vacancy_in.model_dump(exclude_unset=True)
+    for field, value in data.items():
+        setattr(db_vacancy, field, value)
+
+    await db.commit()
+    await db.refresh(db_vacancy)
+    return db_vacancy
+
+
+async def delete_vacancy(db: AsyncSession, vacancy_id: int) -> bool:
+    result = await db.execute(select(models.Vacancy).where(models.Vacancy.id == vacancy_id))
+    db_vacancy = result.scalar_one_or_none()
+    if not db_vacancy:
+        return False
+
+    await db.delete(db_vacancy)
+    await db.commit()
+    return True
+
+
+
 # Filter CRUD
 async def create_filter(db: AsyncSession, filter_data: schemas.FilterCreate):
-    db_filter = models.Filter(
-        user_id=filter_data.user_id,
-        keyword=filter_data.keyword,
-        location=filter_data.location,
-        min_salary=filter_data.min_salary,
-        max_salary=filter_data.max_salary,
-    )
+    db_filter = models.Filter(**filter_data.model_dump())
     db.add(db_filter)
     await db.commit()
     await db.refresh(db_filter)
     return db_filter
-
-
-async def get_filters_by_user(db: AsyncSession, user_id: int):
-    result = await db.execute(select(models.Filter).where(models.Filter.user_id == user_id))
-    return result.scalars().all()
 
 
 async def get_filter(db: AsyncSession, filter_id: int):
@@ -110,7 +120,12 @@ async def get_filter(db: AsyncSession, filter_id: int):
     return result.scalar_one_or_none()
 
 
-async def update_filter(db: AsyncSession, filter_id: int, filter_in: schemas.FilterUpdate):
+async def get_filters_by_user(db: AsyncSession, user_id: int):
+    result = await db.execute(select(models.Filter).where(models.Filter.user_id == user_id))
+    return result.scalars().all()
+
+
+async def update_filter(db: AsyncSession, filter_id: int, filter_in: schemas.FilterCreate):
     result = await db.execute(select(models.Filter).where(models.Filter.id == filter_id))
     db_filter = result.scalar_one_or_none()
     if not db_filter:
