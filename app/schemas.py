@@ -29,6 +29,18 @@ class UserUpdate(BaseModel):
 
 
 
+# Auth Schemas
+class Token(BaseModel):
+    access_token: str
+    token_type: str
+
+
+class LoginRequest(BaseModel):
+    email: EmailStr
+    password: str
+
+
+
 # Vacancy Schemas
 class VacancyBase(BaseModel):
     title: str
@@ -85,3 +97,4 @@ class FilterUpdate(BaseModel):
     location: Optional[str] = None
     min_salary: Optional[int] = None
     max_salary: Optional[int] = None
+
