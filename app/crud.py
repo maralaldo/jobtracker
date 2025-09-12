@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app import models, schemas
-
+from app.security import hash_password
 
 
 # User CRUD
@@ -9,7 +9,7 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
     db_user = models.User(
         name=user.name,
         email=user.email,
-        password=user.password,  # TODO: hash password
+        password=hash_password(user.password),
         telegram_id=user.telegram_id,
     )
     db.add(db_user)
