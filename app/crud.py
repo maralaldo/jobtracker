@@ -79,6 +79,11 @@ async def get_vacancies(db: AsyncSession, skip: int = 0, limit: int = 100):
     return result.scalars().all()
 
 
+async def get_vacancy(db: AsyncSession, vacancy_id: int):
+    result = await db.execute(select(models.Vacancy).filter(models.Vacancy.id == vacancy_id))
+    return result.scalars().first()
+
+
 async def update_vacancy(db: AsyncSession, vacancy_id: int, vacancy_in: schemas.VacancyUpdate):
     result = await db.execute(select(models.Vacancy).filter(models.Vacancy.id == vacancy_id))
     db_vacancy = result.scalars().first()
@@ -114,7 +119,12 @@ async def create_filter(db: AsyncSession, filter: schemas.FilterCreate):
     return db_filter
 
 
-async def get_filters(db: AsyncSession, user_id: int):
+async def get_filter(db: AsyncSession, filter_id: int):
+    result = await db.execute(select(models.Filter).filter(models.Filter.id == filter_id))
+    return result.scalars().first()
+
+
+async def get_filters_by_user(db: AsyncSession, user_id: int):
     result = await db.execute(
         select(models.Filter).options(joinedload(models.Filter.user)).filter(models.Filter.user_id == user_id)
     )

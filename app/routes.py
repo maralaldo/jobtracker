@@ -100,8 +100,8 @@ async def delete_vacancy(vacancy_id: int, db: AsyncSession = Depends(get_session
 
 # Filters
 @router.post("/filters/", response_model=schemas.FilterRead)
-async def create_filter(filter_data: schemas.FilterCreate, db: AsyncSession = Depends(get_session)):
-    return await crud.create_filter(db=db, filter_data=filter_data)
+async def create_filter(filter: schemas.FilterCreate, db: AsyncSession = Depends(get_session)):
+    return await crud.create_filter(db=db, filter=filter)
 
 
 @router.get("/filters/{filter_id}", response_model=schemas.FilterRead)
