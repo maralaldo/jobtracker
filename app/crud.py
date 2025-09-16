@@ -1,15 +1,35 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from sqlalchemy.orm import joinedload
+from fastapi import HTTPException
 from app import models, schemas
 from app.security import hash_password
 
 
 # User CRUD
+async def get_user(db: AsyncSession, user_id: int):
+    result = await db.execute(select(models.User).filter(models.User.id == user_id))
+    return result.scalars().first()
+
+
+async def get_user_by_email(db: AsyncSession, email: str):
+    result = await db.execute(select(models.User).filter(models.User.email == email))
+    return result.scalars().first()
+
+
+
+async def get_users(db: AsyncSession, skip: int = 0, limit: int = 100):
+    result = await db.execute(
+        select(models.User).offset(skip).limit(limit)
+    )
+    return result.scalars().all()
+
+
 async def create_user(db: AsyncSession, user: schemas.UserCreate):
     db_user = models.User(
         name=user.name,
         email=user.email,
-        password=hash_password(user.password),
+        hashed_password=hash_password(user.password),
         telegram_id=user.telegram_id,
     )
     db.add(db_user)
@@ -18,45 +38,30 @@ async def create_user(db: AsyncSession, user: schemas.UserCreate):
     return db_user
 
 
-async def get_user(db: AsyncSession, user_id: int):
-    result = await db.execute(select(models.User).where(models.User.id == user_id))
-    return result.scalar_one_or_none()
-
-
-async def get_user_by_email(db: AsyncSession, email: str):
-    result = await db.execute(select(models.User).where(models.User.email == email))
-    return result.scalar_one_or_none()
-
-
-async def get_users(db: AsyncSession, skip: int = 0, limit: int = 10):
-    result = await db.execute(select(models.User).offset(skip).limit(limit))
-    return result.scalars().all()
-
-
 async def update_user(db: AsyncSession, user_id: int, user_in: schemas.UserUpdate):
-    result = await db.execute(select(models.User).where(models.User.id == user_id))
-    db_user = result.scalar_one_or_none()
+    db_user = await get_user(db, user_id)
     if not db_user:
-        return None
+        raise HTTPException(status_code=404, detail="User not found")
 
-    data = user_in.model_dump(exclude_unset=True)
-    for field, value in data.items():
-        setattr(db_user, field, value)
+    for field, value in user_in.model_dump(exclude_unset=True).items():
+        if field == "password":
+            setattr(db_user, "hashed_password", hash_password(value))
+        else:
+            setattr(db_user, field, value)
 
     await db.commit()
     await db.refresh(db_user)
     return db_user
 
 
-async def delete_user(db: AsyncSession, user_id: int) -> bool:
-    result = await db.execute(select(models.User).where(models.User.id == user_id))
-    db_user = result.scalar_one_or_none()
+async def delete_user(db: AsyncSession, user_id: int):
+    db_user = await get_user(db, user_id)
     if not db_user:
-        return False
+        raise HTTPException(status_code=404, detail="User not found")
 
     await db.delete(db_user)
     await db.commit()
-    return True
+    return db_user
 
 
 
@@ -69,24 +74,18 @@ async def create_vacancy(db: AsyncSession, vacancy: schemas.VacancyCreate):
     return db_vacancy
 
 
-async def get_vacancy(db: AsyncSession, vacancy_id: int):
-    result = await db.execute(select(models.Vacancy).where(models.Vacancy.id == vacancy_id))
-    return result.scalar_one_or_none()
-
-
-async def get_vacancies(db: AsyncSession, skip: int = 0, limit: int = 10):
+async def get_vacancies(db: AsyncSession, skip: int = 0, limit: int = 100):
     result = await db.execute(select(models.Vacancy).offset(skip).limit(limit))
     return result.scalars().all()
 
 
-async def update_vacancy(db: AsyncSession, vacancy_id: int, vacancy_in: schemas.VacancyCreate):
-    result = await db.execute(select(models.Vacancy).where(models.Vacancy.id == vacancy_id))
-    db_vacancy = result.scalar_one_or_none()
+async def update_vacancy(db: AsyncSession, vacancy_id: int, vacancy_in: schemas.VacancyUpdate):
+    result = await db.execute(select(models.Vacancy).filter(models.Vacancy.id == vacancy_id))
+    db_vacancy = result.scalars().first()
     if not db_vacancy:
-        return None
+        raise HTTPException(status_code=404, detail="Vacancy not found")
 
-    data = vacancy_in.model_dump(exclude_unset=True)
-    for field, value in data.items():
+    for field, value in vacancy_in.model_dump(exclude_unset=True).items():
         setattr(db_vacancy, field, value)
 
     await db.commit()
@@ -94,45 +93,41 @@ async def update_vacancy(db: AsyncSession, vacancy_id: int, vacancy_in: schemas.
     return db_vacancy
 
 
-async def delete_vacancy(db: AsyncSession, vacancy_id: int) -> bool:
-    result = await db.execute(select(models.Vacancy).where(models.Vacancy.id == vacancy_id))
-    db_vacancy = result.scalar_one_or_none()
+async def delete_vacancy(db: AsyncSession, vacancy_id: int):
+    result = await db.execute(select(models.Vacancy).filter(models.Vacancy.id == vacancy_id))
+    db_vacancy = result.scalars().first()
     if not db_vacancy:
-        return False
+        raise HTTPException(status_code=404, detail="Vacancy not found")
 
     await db.delete(db_vacancy)
     await db.commit()
-    return True
+    return db_vacancy
 
 
 
 # Filter CRUD
-async def create_filter(db: AsyncSession, filter_data: schemas.FilterCreate):
-    db_filter = models.Filter(**filter_data.model_dump())
+async def create_filter(db: AsyncSession, filter: schemas.FilterCreate):
+    db_filter = models.Filter(**filter.model_dump())
     db.add(db_filter)
     await db.commit()
     await db.refresh(db_filter)
     return db_filter
 
 
-async def get_filter(db: AsyncSession, filter_id: int):
-    result = await db.execute(select(models.Filter).where(models.Filter.id == filter_id))
-    return result.scalar_one_or_none()
-
-
-async def get_filters_by_user(db: AsyncSession, user_id: int):
-    result = await db.execute(select(models.Filter).where(models.Filter.user_id == user_id))
+async def get_filters(db: AsyncSession, user_id: int):
+    result = await db.execute(
+        select(models.Filter).options(joinedload(models.Filter.user)).filter(models.Filter.user_id == user_id)
+    )
     return result.scalars().all()
 
 
-async def update_filter(db: AsyncSession, filter_id: int, filter_in: schemas.FilterCreate):
-    result = await db.execute(select(models.Filter).where(models.Filter.id == filter_id))
-    db_filter = result.scalar_one_or_none()
+async def update_filter(db: AsyncSession, filter_id: int, filter_in: schemas.FilterUpdate):
+    result = await db.execute(select(models.Filter).filter(models.Filter.id == filter_id))
+    db_filter = result.scalars().first()
     if not db_filter:
-        return None
+        raise HTTPException(status_code=404, detail="Filter not found")
 
-    data = filter_in.model_dump(exclude_unset=True)
-    for field, value in data.items():
+    for field, value in filter_in.model_dump(exclude_unset=True).items():
         setattr(db_filter, field, value)
 
     await db.commit()
@@ -140,12 +135,12 @@ async def update_filter(db: AsyncSession, filter_id: int, filter_in: schemas.Fil
     return db_filter
 
 
-async def delete_filter(db: AsyncSession, filter_id: int) -> bool:
-    result = await db.execute(select(models.Filter).where(models.Filter.id == filter_id))
-    db_filter = result.scalar_one_or_none()
+async def delete_filter(db: AsyncSession, filter_id: int):
+    result = await db.execute(select(models.Filter).filter(models.Filter.id == filter_id))
+    db_filter = result.scalars().first()
     if not db_filter:
-        return False
+        raise HTTPException(status_code=404, detail="Filter not found")
 
     await db.delete(db_filter)
     await db.commit()
-    return True
+    return db_filter

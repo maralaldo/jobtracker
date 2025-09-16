@@ -2,7 +2,6 @@ from pydantic import BaseModel, EmailStr
 from typing import Optional
 
 
-
 # User Schemas
 class UserBase(BaseModel):
     name: str
@@ -28,7 +27,6 @@ class UserUpdate(BaseModel):
     password: Optional[str] = None
 
 
-
 # Auth Schemas
 class Token(BaseModel):
     access_token: str
@@ -38,7 +36,6 @@ class Token(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
-
 
 
 # Vacancy Schemas
@@ -71,7 +68,6 @@ class VacancyUpdate(BaseModel):
     source: Optional[str] = None
 
 
-
 # Filter Schemas
 class FilterBase(BaseModel):
     keyword: str
@@ -97,4 +93,3 @@ class FilterUpdate(BaseModel):
     location: Optional[str] = None
     min_salary: Optional[int] = None
     max_salary: Optional[int] = None
-

@@ -1,12 +1,26 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi.security import OAuth2PasswordRequestForm
 from app.database import get_session
 from app import crud, schemas
-from fastapi.security import OAuth2PasswordRequestForm
-from app.security import hash_password, create_access_token
-
+from app.security import verify_password, create_access_token, get_current_user
+from app.models import User
 
 router = APIRouter()
+
+
+# Auth
+@router.post("/auth/login", response_model=schemas.Token)
+async def login(
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: AsyncSession = Depends(get_session)
+):
+    user = await crud.get_user_by_email(db, form_data.username)
+    if not user or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    access_token = create_access_token(data={"sub": str(user.id)})
+    return {"access_token": access_token, "token_type": "bearer"}
 
 
 
@@ -14,6 +28,11 @@ router = APIRouter()
 @router.post("/users/", response_model=schemas.UserRead)
 async def create_user(user: schemas.UserCreate, db: AsyncSession = Depends(get_session)):
     return await crud.create_user(db=db, user=user)
+
+
+@router.get("/users/me", response_model=schemas.UserRead)
+async def read_users_me(current_user: User = Depends(get_current_user)):
+    return current_user
 
 
 @router.get("/users/{user_id}", response_model=schemas.UserRead)
@@ -40,21 +59,6 @@ async def delete_user(user_id: int, db: AsyncSession = Depends(get_session)):
     if not ok:
         raise HTTPException(status_code=404, detail="User not found")
     return Response(status_code=204)
-
-
-
-# Auth
-@router.post("/auth/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_session)):
-    user = await crud.get_user_by_email(db, form_data.username)
-    if not user:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-
-    if not verify_password(form_data.password, user.password):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-
-    access_token = create_access_token(data={"sub": str(user.id)})
-    return {"access_token": access_token, "token_type": "bearer"}
 
 
 
