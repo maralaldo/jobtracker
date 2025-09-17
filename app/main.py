@@ -1,7 +1,11 @@
 from fastapi import FastAPI
-from app.routes import router as api_router
+from app.api import api_router
 
-
-app = FastAPI()
+app = FastAPI(title="Job Aggregator API")
 
 app.include_router(api_router)
+
+
+@app.get("/")
+async def root():
+    return {"message": "Job Aggregator API is running 🚀"}

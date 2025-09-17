@@ -1,10 +1,9 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker, declarative_base
+from app.core.config import settings
 
 
-DATABASE_URL = "postgresql+asyncpg://postgres:postgres@localhost:5432/jobtracker"
-
-engine = create_async_engine(DATABASE_URL, echo=True, future=True)
+engine = create_async_engine(settings.DATABASE_URL, echo=True, future=True)
 
 
 AsyncSessionLocal = sessionmaker(
