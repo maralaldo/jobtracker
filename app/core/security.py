@@ -5,8 +5,9 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_session
-from app.crud import vacancy
+from app.crud import user as crud_user
 from app.core.utils import verify_password
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
@@ -35,7 +36,7 @@ async def get_current_user(
     except JWTError:
         raise credentials_exception
 
-    user = await vacancy.get_user(db, int(user_id))
+    user = await crud_user.get_user(db, int(user_id))
     if user is None:
         raise credentials_exception
     return user
