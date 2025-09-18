@@ -1,8 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List
 from app.core.database import get_session
 from app.crud import vacancy
+from app.crud.vacancy import search_vacancies
 from app.schemas.vacancy import VacancyCreate, VacancyRead, VacancyUpdate
+from app.schemas.filter import VacancySearchRequest
+from app.schemas.vacancy import VacancyOut
 
 router = APIRouter(prefix="/vacancies", tags=["vacancies"])
 
@@ -40,3 +44,18 @@ async def delete_vacancy(vacancy_id: int, db: AsyncSession = Depends(get_session
     if not ok:
         raise HTTPException(status_code=404, detail="Vacancy not found")
     return Response(status_code=204)
+
+
+@router.post("/search", response_model=List[VacancyOut])
+async def search_vacancies_endpoint(
+    search_request: VacancySearchRequest,
+    db: AsyncSession = Depends(get_session)
+):
+    return await search_vacancies(
+        db,
+        filter_id=search_request.filter_id,
+        keyword=search_request.keyword,
+        location=search_request.location,
+        min_salary=search_request.min_salary,
+        max_salary=search_request.max_salary,
+    )

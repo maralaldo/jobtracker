@@ -26,3 +26,11 @@ class FilterUpdate(BaseModel):
     location: Optional[str] = None
     min_salary: Optional[int] = None
     max_salary: Optional[int] = None
+
+
+class VacancySearchRequest(BaseModel):
+    filter_id: Optional[int] = None
+    keyword: Optional[str] = None
+    location: Optional[str] = None
+    min_salary: Optional[int] = None
+    max_salary: Optional[int] = None

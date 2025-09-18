@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional
+from datetime import datetime
 
 
 class VacancyBase(BaseModel):
@@ -29,3 +30,12 @@ class VacancyUpdate(BaseModel):
     salary: Optional[int] = None
     url: Optional[str] = None
     source: Optional[str] = None
+
+
+class VacancyOut(VacancyBase):
+    id: int
+    created_at: datetime
+    user_id: Optional[int] = None
+
+    class Config:
+        from_attributes = True

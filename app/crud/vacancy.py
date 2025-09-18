@@ -1,9 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from fastapi import HTTPException
+from typing import List, Optional
 from app.models import Vacancy
 from app.schemas.vacancy import VacancyCreate, VacancyUpdate
-
+from app.models.filter import Filter
 
 async def create_vacancy(db: AsyncSession, vacancy: VacancyCreate):
     db_vacancy = Vacancy(**vacancy.model_dump())
@@ -46,3 +47,37 @@ async def delete_vacancy(db: AsyncSession, vacancy_id: int):
     await db.delete(db_vacancy)
     await db.commit()
     return db_vacancy
+
+
+async def search_vacancies(
+    db: AsyncSession,
+    filter_id: Optional[int] = None,
+    keyword: Optional[str] = None,
+    location: Optional[str] = None,
+    min_salary: Optional[int] = None,
+    max_salary: Optional[int] = None,
+) -> List[Vacancy]:
+    if filter_id:
+        db_filter = await db.get(Filter, filter_id)
+        if db_filter:
+            keyword = keyword or db_filter.keyword
+            location = location or db_filter.location
+            min_salary = min_salary or db_filter.min_salary
+            max_salary = max_salary or db_filter.max_salary
+
+    query = select(Vacancy)
+
+    if keyword:
+        query = query.filter(
+            (Vacancy.title.ilike(f"%{keyword}%")) |
+            (Vacancy.company.ilike(f"%{keyword}%"))
+        )
+    if location:
+        query = query.filter(Vacancy.location.ilike(f"%{location}%"))
+    if min_salary:
+        query = query.filter(Vacancy.salary >= min_salary)
+    if max_salary:
+        query = query.filter(Vacancy.salary <= max_salary)
+
+    result = await db.execute(query)
+    return result.scalars().all()
