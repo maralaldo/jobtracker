@@ -1,6 +1,7 @@
+from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from fastapi import HTTPException
+from app import models
 from app.models import Filter
 from app.schemas.filter import FilterCreate, FilterUpdate
 
@@ -11,6 +12,11 @@ async def create_filter(db: AsyncSession, filter: FilterCreate):
     await db.commit()
     await db.refresh(db_filter)
     return db_filter
+
+
+async def get_all_filters(db: AsyncSession):
+    result = await db.execute(select(models.Filter))
+    return result.scalars().all()
 
 
 async def get_filter(db: AsyncSession, filter_id: int):

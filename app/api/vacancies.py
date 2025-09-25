@@ -59,3 +59,10 @@ async def search_vacancies_endpoint(
         min_salary=search_request.min_salary,
         max_salary=search_request.max_salary,
     )
+
+
+@router.post("/parse")
+async def trigger_parse(db: AsyncSession = Depends(get_session)):
+    from app.tasks.vacancies import parse_vacancies
+    parse_vacancies.delay()
+    return {"status": "queued"}

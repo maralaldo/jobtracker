@@ -1,10 +1,12 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 from fastapi import HTTPException
 from typing import List, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from app import models
 from app.models import Vacancy
-from app.schemas.vacancy import VacancyCreate, VacancyUpdate
 from app.models.filter import Filter
+from app.schemas.vacancy import VacancyCreate, VacancyUpdate
+
 
 async def create_vacancy(db: AsyncSession, vacancy: VacancyCreate):
     db_vacancy = Vacancy(**vacancy.model_dump())
@@ -22,6 +24,11 @@ async def get_vacancies(db: AsyncSession, skip: int = 0, limit: int = 100):
 async def get_vacancy(db: AsyncSession, vacancy_id: int):
     result = await db.execute(select(Vacancy).filter(Vacancy.id == vacancy_id))
     return result.scalars().first()
+
+
+async def get_vacancy_by_url(db: AsyncSession, url: str):
+    result = await db.execute(select(models.Vacancy).where(models.Vacancy.url == url))
+    return result.scalar_one_or_none()
 
 
 async def update_vacancy(db: AsyncSession, vacancy_id: int, vacancy_in: VacancyUpdate):

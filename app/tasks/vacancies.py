@@ -1,68 +1,51 @@
-import asyncio
-import logging
-from typing import List, Dict
 from app.core.celery import celery_app
-from app.core.database import AsyncSessionLocal
-from app.models.vacancy import Vacancy
-from sqlalchemy import select
 
 
-logger = logging.getLogger(__name__)
-
-
-async def save_vacancies_to_db(vacancies: List[Dict]) -> int:
-    added = 0
-    async with AsyncSessionLocal() as session:
-        for v in vacancies:
-            stmt = select(Vacancy).where(Vacancy.url == v["url"])
-            res = await session.execute(stmt)
-            existing = res.scalar_one_or_none()
-            if existing:
-                continue
-
-            db_v = Vacancy(
-                title=v["title"],
-                company=v["company"],
-                location=v.get("location"),
-                salary=v.get("salary"),
-                url=v["url"],
-                source=v.get("source"),
-            )
-            session.add(db_v)
-            added += 1
-
-        if added:
-            await session.commit()
-        else:
-            await session.commit()
-    return added
-
-
-@celery_app.task(name="app.tasks.vacancies.parse_vacancies")
+@celery_app.task(name="app.tasks.parse_vacancies")
 def parse_vacancies():
-    logger.info("Starting parse_vacancies (mock)")
+    import asyncio
+    from app.core.database import AsyncSessionLocal
+    from app.crud import filters as filters_crud
+    from app.crud import vacancy as vacancy_crud
+    from app.crud import user as user_crud
+    from app.parsers.hh import fetch_vacancies_for_filter
+    from app.tasks.notifications import send_message_async
+    from app.schemas.vacancy import VacancyCreate as VacancyCreateSchema
 
-# TODO: Replace the mock with a real parser (requests/aiohttp)
-    mock_vacancies = [
-        {
-            "title": "Python Developer",
-            "company": "OpenAI",
-            "location": "Remote",
-            "salary": 150000,
-            "url": "https://example.com/jobs/python-1",
-            "source": "mock",
-        },
-        {
-            "title": "Backend Engineer",
-            "company": "Acme",
-            "location": "Minsk",
-            "salary": 80000,
-            "url": "https://example.com/jobs/backend-1",
-            "source": "mock",
-        },
-    ]
+    async def _main():
+        async with AsyncSessionLocal() as db:
+            filters = await filters_crud.get_all_filters(db)
+            # map user_id -> list[vacancy_dict]
+            user_new = {}
 
-    added = asyncio.run(save_vacancies_to_db(mock_vacancies))
+            for f in filters:
+                items = fetch_vacancies_for_filter(f, pages=1)
+                for it in items:
+                    if not it.get("url"):
+                        continue
+                    exists = await vacancy_crud.get_vacancy_by_url(db, it["url"])
+                    if exists:
+                        continue
+                    # create vacancy using your VacancyCreate schema shape
+                    vac_in = VacancyCreateSchema(
+                        title=it["title"] or "No title",
+                        company=it.get("company") or "",
+                        location=it.get("location"),
+                        salary=None,
+                        url=it["url"],
+                        source=it.get("source") or "hh.ru",
+                    )
+                    await vacancy_crud.create_vacancy(db, vac_in)
+                    user_new.setdefault(f.user_id, []).append(it)
 
-    logger.info("parse_vacancies finished: added=%d", added)
-    return {"added": added, "total_found": len(mock_vacancies)}
+            for user_id, vacs in user_new.items():
+                user = await user_crud.get_user(db, user_id)
+                if not user or not user.telegram_id:
+                    continue
+                text_lines = []
+                for v in vacs:
+                    text_lines.append(f"{v.get('title')} — {v.get('company')}\n{v.get('url')}")
+                text = "New vacancies matching your filters:\n\n" + "\n\n".join(text_lines)
+                await send_message_async(user.telegram_id, text)
+
+    asyncio.run(_main())
