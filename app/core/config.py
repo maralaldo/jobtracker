@@ -8,9 +8,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
 
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost/jobtracker"
-
-    REDIS_URL: str = "redis://localhost:6379/0"
+    DATABASE_URL: str
+    REDIS_URL: str
+    TELEGRAM_BOT_TOKEN: str
 
     class Config:
         env_file = ".env"

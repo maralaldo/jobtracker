@@ -1,5 +1,5 @@
-from . import user
-from . import vacancy
+from . import users
+from . import vacancies
 from . import filters
 
-__all__ = ["user", "vacancy", "filters"]
+__all__ = ["users", "vacancies", "filters"]

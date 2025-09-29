@@ -58,3 +58,14 @@ async def delete_user(db: AsyncSession, user_id: int):
     await db.delete(db_user)
     await db.commit()
     return db_user
+
+
+async def link_telegram_id(db: AsyncSession, user_id: int, telegram_id: str):
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalars().first()
+    if user:
+        user.telegram_id = telegram_id
+        await db.commit()
+        await db.refresh(user)
+        return user
+    return None

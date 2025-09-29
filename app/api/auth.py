@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.security import OAuth2PasswordRequestForm
 from app.core.database import get_session
 from app.core.security import verify_password, create_access_token
-from app.crud import user
+from app.crud import users
 from app.schemas.auth import Token
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -14,7 +14,7 @@ async def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: AsyncSession = Depends(get_session),
 ):
-    db_user = await user.get_user_by_email(db, form_data.username)
+    db_user = await users.get_user_by_email(db, form_data.username)
     if not db_user or not verify_password(form_data.password, db_user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 

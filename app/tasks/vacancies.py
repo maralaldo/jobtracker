@@ -6,8 +6,8 @@ def parse_vacancies():
     import asyncio
     from app.core.database import AsyncSessionLocal
     from app.crud import filters as filters_crud
-    from app.crud import vacancy as vacancy_crud
-    from app.crud import user as user_crud
+    from app.crud import vacancies as vacancy_crud
+    from app.crud import users as user_crud
     from app.parsers.hh import fetch_vacancies_for_filter
     from app.tasks.notifications import send_message_async
     from app.schemas.vacancy import VacancyCreate as VacancyCreateSchema

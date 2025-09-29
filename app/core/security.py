@@ -5,7 +5,7 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.core.database import get_session
-from app.crud import user as crud_user
+from app.crud import users as crud_user
 from app.core.utils import verify_password
 
 

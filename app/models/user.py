@@ -10,7 +10,7 @@ class User(Base):
     name = Column(String, nullable=False)
     email = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
-    telegram_id = Column(String, nullable=True)
+    telegram_id = Column(String, unique=True, nullable=True)
 
     filters = relationship("Filter", back_populates="user")
     vacancies = relationship("Vacancy", back_populates="user")
